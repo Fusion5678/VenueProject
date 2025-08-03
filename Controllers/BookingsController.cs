@@ -57,12 +57,11 @@ namespace VenueDBApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("EventId,VenueId,BookingDate")] Booking booking)
         {
-            if (ModelState.IsValid)
-            {
+           
                 _context.Add(booking);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
-            }
+            
             ViewData["EventID"] = new SelectList(_context.Events, "EventId", "EventName", booking.EventId);
             ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", booking.VenueId);
             return View(booking);
