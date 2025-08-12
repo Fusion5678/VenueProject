@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VenueDBApp.Models
 {
-    [Table("Booking")]
+ 
     public class Booking
     {
         [Key]

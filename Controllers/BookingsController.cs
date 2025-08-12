@@ -47,8 +47,23 @@ namespace VenueDBApp.Controllers
         // GET: Bookings/Create
         public IActionResult Create()
         {
-            ViewData["EventID"] = new SelectList(_context.Events, "EventId", "EventName");
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName");
+            var events = _context.Events.ToList();
+            var venues = _context.Venues.ToList();
+            
+            if (!events.Any())
+            {
+                TempData["ErrorMessage"] = "No events available. Please create some events first.";
+                return RedirectToAction("Index", "Events");
+            }
+            
+            if (!venues.Any())
+            {
+                TempData["ErrorMessage"] = "No venues available. Please create some venues first.";
+                return RedirectToAction("Index", "Venues");
+            }
+            
+            ViewData["EventID"] = new SelectList(events, "EventId", "EventName");
+            ViewData["VenueID"] = new SelectList(venues, "VenueId", "VenueName");
             return View();
         }
 
@@ -57,14 +72,37 @@ namespace VenueDBApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("EventId,VenueId,BookingDate")] Booking booking)
         {
-           
+            // Additional validation
+            if (booking.EventId == 0)
+            {
+                ModelState.AddModelError("EventId", "Please select an event.");
+            }
+            
+            if (booking.VenueId == 0)
+            {
+                ModelState.AddModelError("VenueId", "Please select a venue.");
+            }
+            
+            if (booking.BookingDate < DateTime.Today)
+            {
+                ModelState.AddModelError("BookingDate", "Booking date cannot be in the past.");
+            }
+
+            try
+            {
                 _context.Add(booking);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Booking created successfully.";
                 return RedirectToAction(nameof(Index));
-            
-            ViewData["EventID"] = new SelectList(_context.Events, "EventId", "EventName", booking.EventId);
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", booking.VenueId);
-            return View(booking);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error creating booking: {ex.Message}";
+                ViewData["EventID"] = new SelectList(_context.Events, "EventId", "EventName", booking.EventId);
+                ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", booking.VenueId);
+                return View(booking);
+            }
+         
         }
 
         // GET: Bookings/Edit/5
@@ -95,8 +133,7 @@ namespace VenueDBApp.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
-            {
+          
                 try
                 {
                     _context.Update(booking);
@@ -113,11 +150,7 @@ namespace VenueDBApp.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["EventID"] = new SelectList(_context.Events, "EventId", "EventName", booking.EventId);
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName", booking.VenueId);
-            return View(booking);
+                return RedirectToAction(nameof(Index));        
         }
 
         // GET: Bookings/Delete/5
@@ -148,10 +181,19 @@ namespace VenueDBApp.Controllers
             var booking = await _context.Bookings.FindAsync(id);
             if (booking != null)
             {
-                _context.Bookings.Remove(booking);
+                try
+                {
+                    _context.Bookings.Remove(booking);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Booking deleted successfully.";
+                }
+                catch (Exception ex)
+                {
+                    TempData["ErrorMessage"] =$"Error deleting booking : {ex.Message}";
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

@@ -46,7 +46,7 @@ namespace VenueDBApp.Controllers
         // GET: Events/Create
         public IActionResult Create()
         {
-            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueID", "VenueName");
+            ViewData["VenueID"] = new SelectList(_context.Venues, "VenueId", "VenueName");
             return View();
         }
 
@@ -134,7 +134,7 @@ namespace VenueDBApp.Controllers
 
             return View(@event);
         }
-
+        
         // POST: Events/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -143,10 +143,19 @@ namespace VenueDBApp.Controllers
             var @event = await _context.Events.FindAsync(id);
             if (@event != null)
             {
-                _context.Events.Remove(@event);
+                try
+                {
+                    _context.Events.Remove(@event);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Event deleted successfully.";
+                }
+                catch (DbUpdateException ex)
+                {
+                    TempData["ErrorMessage"] = "Cannot delete this event. It may have associated bookings. Please delete all related bookings first.";
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

@@ -134,10 +134,19 @@ namespace VenueDBApp.Controllers
             var venue = await _context.Venues.FindAsync(id);
             if (venue != null)
             {
-                _context.Venues.Remove(venue);
+                try
+                {
+                    _context.Venues.Remove(venue);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Venue deleted successfully.";
+                }
+                catch (DbUpdateException ex)
+                {
+                    TempData["ErrorMessage"] = "Cannot delete this venue. It may have associated events or bookings. Please delete all related events and bookings first.";
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
